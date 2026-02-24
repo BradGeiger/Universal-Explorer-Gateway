@@ -1,0 +1,88 @@
+from flask import Flask, render_template_string, request, session, redirect, url_for
+import os
+
+app = Flask(__name__)
+app.secret_key = "{{SECRET_KEY_STRING}}" # Required for sessions
+
+# --- UI Template with History Bar ---
+HTML_LAYOUT = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Universal Explorer + History</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; background: #f0f2f5; }
+        .address-bar { background: #2c3e50; padding: 20px; border-radius: 8px; margin-bottom: 10px; }
+        .history-bar { margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap; }
+        .history-tag { background: #d1d8e0; padding: 5px 12px; border-radius: 15px; text-decoration: none; color: #4b6584; font-size: 0.85em; border: 1px solid #a5b1c2; }
+        .history-tag:hover { background: #a5b1c2; color: white; }
+        #url_path { width: 70%; padding: 10px; border-radius: 4px; border: none; }
+        .btn { padding: 10px 20px; border-radius: 4px; border: none; cursor: pointer; background: #27ae60; color: white; }
+        .explorer-table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; }
+        .explorer-table td { padding: 12px; border-bottom: 1px solid #eee; }
+        .folder { color: #f39c12; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="address-bar">
+        <form action="/connect" method="POST">
+            <input type="text" name="url_path" id="url_path" placeholder="Paste path here..." value="{{ current_root }}">
+            <button type="submit" class="btn">Connect</button>
+        </form>
+    </div>
+
+    <div class="history-bar">
+        <strong>Recent:</strong>
+        {% for path in history %}
+        <a href="/explore/{{ path }}" class="history-tag">{{ path.split('/')[-1] or path }}</a>
+        {% endfor %}
+    </div>
+
+    <table class="explorer-table">
+        {% for item in items %}
+        <tr>
+            <td><a href="{{ item.link }}" class="{{ 'folder' if item.is_dir else '' }}">
+                {{ '📁' if item.is_dir else '📄' }} {{ item.name }}
+            </a></td>
+            <td style="text-align:right; color:#888;">{{ item.size }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
+"""
+
+@app.route('/')
+def home():
+    history = session.get('history', [])
+    return render_template_string(HTML_LAYOUT, current_root="", items=[], history=history)
+
+@app.route('/connect', methods=['POST'])
+def connect():
+    path = request.form.get('url_path')
+    if path:
+        # Update History Logic
+        history = session.get('history', [])
+        if path in history: history.remove(path) # Move to front if exists
+        history.insert(0, path)
+        session['history'] = history[:5] # Keep last 5
+    return redirect(f"/explore/{path}")
+
+@app.route('/explore/<path:full_path>')
+def browse(full_path):
+    # Standard scanning logic from previous step...
+    items = []
+    try:
+        for entry in os.scandir(full_path):
+            items.append({
+                "name": entry.name, "is_dir": entry.is_dir(),
+                "link": f"/explore/{os.path.join(full_path, entry.name)}",
+                "size": f"{round(entry.stat().st_size/1024,1)}KB" if not entry.is_dir() else "-"
+            })
+    except Exception as e: return str(e)
+    
+    return render_template_string(HTML_LAYOUT, current_root=full_path, 
+                                  items=items, history=session.get('history', []))
+
+if __name__ == "__main__":
+    app.run(debug=True, port=8080)
