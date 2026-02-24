@@ -1,0 +1,16 @@
+import json
+
+# --- Export Slots ---
+INSIGHTS_JSON_PATH = "{{EXPORT_FILE_PATH}}" # e.g., 'static/insights.json'
+
+def export_insights_to_dashboard(insight_list):
+    # Sort by similarity descending
+    sorted_insights = sorted(insight_list, key=lambda x: x['similarity'], reverse=True)
+    
+    # Logic Slot: Export to JSON
+    with open(INSIGHTS_JSON_PATH, 'w') as f:
+        json.dump(sorted_insights, f, indent=4)
+        
+    print(f"✅ Dashboard Data Refreshed: {INSIGHTS_JSON_PATH}")
+
+# Usage: export_insights_to_dashboard(results)
