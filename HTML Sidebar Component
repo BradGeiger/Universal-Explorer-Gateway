@@ -1,0 +1,32 @@
+<div id="insight-sidebar" style="position:fixed; right:0; top:0; width:300px; height:100%; background:#2c3e50; color:white; padding:20px; overflow-y:auto; box-shadow:-2px 0 5px rgba(0,0,0,0.2);">
+    <h3>🔍 Automated Insights</h3>
+    <hr>
+    <div id="insight-list">
+        <p style="font-size:0.8em; color:#bdc3c7;">Scanning for overlaps...</p>
+    </div>
+</div>
+
+<script>
+async function loadInsights() {
+    try {
+        const response = await fetch('{{EXPORT_FILE_PATH}}');
+        const insights = await response.json();
+        const list = document.getElementById('insight-list');
+        list.innerHTML = ''; // Clear previous
+
+        insights.forEach(item => {
+            const div = document.createElement('div');
+            div.style.cssText = "background:#34495e; padding:10px; margin-bottom:10px; border-radius:5px; border-left:4px solid #e74c3c;";
+            div.innerHTML = `
+                <small style="color:#e74c3c; font-weight:bold;">${item.status}</small><br>
+                <strong>Match:</strong> ${item.similarity}<br>
+                <span style="font-size:0.8em;">${item.path_a} <br>↔ ${item.path_b}</span>
+            `;
+            list.appendChild(div);
+        });
+    } catch (e) { console.log("No insights found yet."); }
+}
+
+// Update on load
+loadInsights();
+</script>
