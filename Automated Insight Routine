@@ -1,0 +1,50 @@
+import sqlite3
+
+# --- Adjustable Metric Slots ---
+OVERLAP_THRESHOLD_PERCENT = {{MIN_OVERLAP_PERCENT}}  # e.g., 50
+MIN_SIGNIFICANT_TERMS = {{MIN_TERMS_TO_COMPARE}}    # e.g., 10
+DATABASE_PATH = "{{DB_PATH}}"
+
+def generate_insights():
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    # Logic Slot: Self-Join to find term overlap between paths
+    query = f"""
+    WITH PathTerms AS (
+        SELECT path_id, term_id 
+        FROM term_relationships 
+        WHERE frequency >= {{MIN_FREQ_WEIGHT}} -- Only count 'strong' terms
+    )
+    SELECT 
+        p1.path_id, p2.path_id, 
+        COUNT(p1.term_id) as shared_count
+    FROM PathTerms p1
+    JOIN PathTerms p2 ON p1.term_id = p2.term_id AND p1.path_id < p2.path_id
+    GROUP BY p1.path_id, p2.path_id
+    HAVING shared_count >= {MIN_SIGNIFICANT_TERMS}
+    """
+    
+    cursor.execute(query)
+    matches = cursor.fetchall()
+    
+    insights = []
+    for m in matches:
+        # Calculate Jaccard-like similarity or simple percentage
+        # Logic: (Shared Terms / Total Terms in Path A) * 100
+        overlap = (m[2] / MIN_SIGNIFICANT_TERMS) * 100 
+        
+        if overlap >= OVERLAP_THRESHOLD_PERCENT:
+            insights.append({
+                "path_a": m[0],
+                "path_b": m[1],
+                "similarity": f"{overlap}%",
+                "status": "🚨 HIGH RELATIONSHIP DETECTED"
+            })
+            
+    return insights
+
+if __name__ == "__main__":
+    results = generate_insights()
+    for insight in results:
+        print(f"INSIGHT: Paths {insight['path_a']} and {insight['path_b']} are {insight['similarity']} similar.")
