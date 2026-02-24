@@ -1,0 +1,23 @@
+// Function to trigger the Backend Mitigation
+async function triggerMitigation(action, pA, pB) {
+    if(!confirm(`Are you sure you want to ${action} these paths?`)) return;
+
+    const response = await fetch('/mitigate', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: action, path_a: pA, path_b: pB })
+    });
+    
+    const result = await response.json();
+    alert(result.message);
+    location.reload(); // Refresh to see updated file system
+}
+
+// Updated Sidebar HTML Template inside loadInsights() loop:
+// div.innerHTML = `
+//    ... existing info ...
+//    <div style="margin-top:10px; display:flex; gap:5px;">
+//        <button onclick="triggerMitigation('merge', '${item.path_a}', '${item.path_b}')" style="flex:1; font-size:10px;">MERGE</button>
+//        <button onclick="triggerMitigation('archive', '${item.path_a}', '${item.path_b}')" style="flex:1; font-size:10px; background:#e67e22;">ARCHIVE</button>
+//    </div>
+// `;
