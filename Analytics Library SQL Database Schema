@@ -1,0 +1,21 @@
+CREATE TABLE explorer_paths (
+    path_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    absolute_path TEXT UNIQUE,
+    last_scraped TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Table 2: Term Library
+CREATE TABLE term_dictionary (
+    term_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    word TEXT UNIQUE
+);
+
+-- Table 3: The Relationship Matrix (The "Under the Hood" equivalent)
+CREATE TABLE term_relationships (
+    relationship_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    path_id INTEGER,
+    term_id INTEGER,
+    frequency INTEGER,
+    FOREIGN KEY(path_id) REFERENCES explorer_paths(path_id),
+    FOREIGN KEY(term_id) REFERENCES term_dictionary(term_id)
+);
