@@ -177,4 +177,16 @@ def mitigate():
             shutil.rmtree(pB)
             return jsonify({"status": "success", "message": "Paths Merged."})
     except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+def load_local_insights():
+    if os.path.exists(INSIGHTS_JSON):
+        with open(INSIGHTS_JSON, 'r') as f:
+            return json.load(f)
+    return []
+
+if __name__ == "__main__":
+    init_db()
+    if not os.path.exists(DEFAULT_ROOT): os.makedirs(DEFAULT_ROOT)
+    print("Server running on http://127.0.0.1:8080")
+    app.run(debug=True, port=8080)
