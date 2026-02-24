@@ -1,0 +1,52 @@
+import os
+import collections
+import re
+
+# --- Scraping Requirements Slots ---
+IGNORE_WORDS = set(['the', 'and', 'this', 'that', 'with', 'from', 'your'])
+MIN_WORD_LENGTH = {{MIN_LENGTH}} # e.g., 4
+TARGET_EXTENSIONS = ('.md', '.py', '.sql', '.txt')
+
+def scrape_and_compare(path_list):
+    path_stats = {}
+    global_word_map = collections.defaultdict(list)
+
+    for path in path_list:
+        if not os.path.exists(path): continue
+        
+        word_counts = collections.Counter()
+        
+        # Logic Slot: Walk and Scrape
+        for root, _, files in os.walk(path):
+            for file in files:
+                if file.endswith(TARGET_EXTENSIONS):
+                    file_path = os.path.join(root, file)
+                    with open(file_path, 'r', errors='ignore') as f:
+                        words = re.findall(r'\w+', f.read().lower())
+                        filtered = [w for w in words if w not in IGNORE_WORDS and len(w) >= MIN_WORD_LENGTH]
+                        word_counts.update(filtered)
+                        
+                        # Map relationships: which path contains which word
+                        for word in set(filtered):
+                            if path not in global_word_map[word]:
+                                global_word_map[word].append(path)
+
+        path_stats[path] = word_counts.most_common(10)
+
+    return path_stats, global_word_map
+
+# --- Execution Routine Slot ---
+if __name__ == "__main__":
+    # In practice, this list is pulled from your Flask Session History
+    paths_to_analyze = {{RECENT_PATHS_LIST}} 
+    
+    stats, relationships = scrape_and_compare(paths_to_analyze)
+    
+    print("--- Term Frequency per Path ---")
+    for path, top_words in stats.items():
+        print(f"Location: {path} -> {top_words}")
+
+    print("\n--- Shared Relationships (Common Terms) ---")
+    for word, locations in relationships.items():
+        if len(locations) > 1: # Only show terms found in multiple paths
+            print(f"Term '{word}' links: {locations}")
